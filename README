@@ -3,3 +3,6 @@ python -m virtualenv venv
 
 pip freeze
 pip install boto3 
+pip install dotenv
+pip install bcrypt
+pip install request

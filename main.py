@@ -144,4 +144,3 @@ while True:
     else:
         print("Opción inválida.")
         input("Presiona ENTER para continuar")
-2

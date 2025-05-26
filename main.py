@@ -5,7 +5,7 @@ import sys
 
 aws = AWSConnections()
 
-def saveUserDynamoDB(session, user):
+def save_user_dynamodb(session, user):
     dynamodb = session.resource('dynamodb')
     table = dynamodb.Table('Users')
     response = table.put_item(Item=user)
@@ -17,33 +17,33 @@ while True:
     print("\n1. Crear cuenta")
     print("2. Iniciar sesión")
     print("3. Salir")
-    opcion = input("Elige una opción: ")
+    option = input("Elige una opción: ")
 
-    if opcion == "1":
+    if option == "1":
         print("\n--- Crear cuenta ---")
-        nombre = input("Nombre: ")
+        name = input("Nombre: ")
         email = input("Email: ")
         password = input("Contraseña: ")
-        capital = 1000
+        balance = 1000
 
-        resultado_login = aws.login(email, password)
-        if resultado_login["success"]:
+        login_result = aws.login(email, password)
+        if login_result["success"]:
             print("El usuario ya existe.")
             input("Presiona ENTER para continuar")
         else:
-            aws.crear_usuario(nombre, email, password, Decimal(str(capital)))
+            aws.create_user(name, email, password, Decimal(str(balance)))
             print("Cuenta creada con éxito.")
             input("Presiona ENTER para continuar")
 
-    elif opcion == "2":
+    elif option == "2":
         print("\n--- Iniciar sesión ---")
         email = input("Email: ")
         password = input("Contraseña: ")
         result = aws.login(email, password)
 
         if result["success"]:
-            usuario = result["user"]
-            print(f"Bienvenido, {usuario['name']}")
+            user = result["user"]
+            print(f"Bienvenido, {user['name']}")
             input("Presiona ENTER para continuar")
 
             while True:
@@ -51,9 +51,9 @@ while True:
                 print("1. Comprar stock")
                 print("2. Consultar portafolio")
                 print("3. Salir")
-                opcion2 = input("Elige una opción: ")
+                option2 = input("Elige una opción: ")
 
-                if opcion2 == "1":
+                if option2 == "1":
                     print("\n--- Comprar Stock ---")
                     stocks_data = get_stocks_from_api()
                     if not stocks_data["success"]:
@@ -65,35 +65,35 @@ while True:
                     for i, stock in enumerate(stocks):
                         print(f"{i + 1}. {stock['name']} - ${stock['price']}")
 
-                    eleccion = input("Escribe el número del stock que deseas comprar o 'salir': ")
-                    if eleccion.lower() == "salir":
+                    choice = input("Escribe el número del stock que deseas comprar o 'salir': ")
+                    if choice.lower() == "salir":
                         continue
 
                     try:
-                        idx = int(eleccion) - 1
+                        idx = int(choice) - 1
                         if idx < 0 or idx >= len(stocks):
                             raise ValueError
 
-                        stock_elegido = stocks[idx]
-                        cantidad = int(input(f"¿Cuántas acciones de {stock_elegido['name']} deseas comprar?: "))
-                        precio_decimal = Decimal(str(stock_elegido["price"]))
-                        total = precio_decimal * cantidad
+                        selected_stock = stocks[idx]
+                        quantity = int(input(f"¿Cuántas acciones de {selected_stock['name']} deseas comprar?: "))
+                        price_decimal = Decimal(str(selected_stock["price"]))
+                        total = price_decimal * quantity
 
-                        confirmar = input(f"Total a pagar: ${total:.2f}. ¿Deseas continuar? (si/no): ").lower()
-                        if confirmar != "si":
+                        confirm = input(f"Total a pagar: ${total:.2f}. ¿Deseas continuar? (si/no): ").lower()
+                        if confirm != "si":
                             print("Compra cancelada.")
                             input("Presiona ENTER para continuar")
                             continue
 
-                        stock_para_guardar = {
-                            "name": stock_elegido["name"],
-                            "price": precio_decimal
+                        stock_to_save = {
+                            "name": selected_stock["name"],
+                            "price": price_decimal
                         }
 
-                        for _ in range(cantidad):
-                            resultado = aws.agregar_inversion(email, stock_para_guardar)
-                            if not resultado["success"]:
-                                print(resultado["message"])
+                        for _ in range(quantity):
+                            result = aws.add_investment(email, stock_to_save)
+                            if not result["success"]:
+                                print(result["message"])
                                 break
                         else:
                             print("Compra realizada con éxito.")
@@ -103,31 +103,31 @@ while True:
                         print("Entrada inválida.")
                         input("Presiona ENTER para continuar")
 
-                elif opcion2 == "2":
+                elif option2 == "2":
                     print("\n--- Portafolio ---")
-                    usuario_actualizado = aws.login(email, password)["user"]
-                    portfolio = usuario_actualizado.get("portfolio", [])
-                    capital = Decimal(str(usuario_actualizado.get("capital", 0)))
-                    total_invertido = sum(Decimal(str(stock["price"])) for stock in portfolio)
-                    saldo_restante = capital - total_invertido
+                    updated_user = aws.login(email, password)["user"]
+                    investments = updated_user.get("investments", [])
+                    balance = Decimal(str(updated_user.get("balance", 0)))
+                    total_invested = sum(Decimal(str(stock["price"])) for stock in investments)
+                    remaining_balance = balance - total_invested
 
-                    if not portfolio:
+                    if not investments:
                         print("No tienes acciones.")
                     else:
-                        resumen = {}
-                        for accion in portfolio:
-                            ticker = accion["name"]
-                            if ticker not in resumen:
-                                resumen[ticker] = {"price": Decimal(str(accion["price"])), "cantidad": 0}
-                            resumen[ticker]["cantidad"] += 1
+                        summary = {}
+                        for stock in investments:
+                            ticker = stock["name"]
+                            if ticker not in summary:
+                                summary[ticker] = {"price": Decimal(str(stock["price"])), "quantity": 0}
+                            summary[ticker]["quantity"] += 1
 
-                        for nombre, datos in resumen.items():
-                            print(f"{nombre} - ${datos['price']} x {datos['cantidad']} acciones")
+                        for name, data in summary.items():
+                            print(f"{name} - ${data['price']} x {data['quantity']} acciones")
 
-                    print(f"\nSaldo restante: ${saldo_restante:.2f}")
+                    print(f"\nSaldo restante: ${remaining_balance:.2f}")
                     input("Presiona ENTER para continuar")
 
-                elif opcion2 == "3":
+                elif option2 == "3":
                     print("Sesión cerrada.")
                     break
                 else:
@@ -138,7 +138,7 @@ while True:
             print(result["message"])
             input("Presiona ENTER para continuar")
 
-    elif opcion == "3":
+    elif option == "3":
         print("Saliendo del programa.")
         break
     else:
